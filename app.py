@@ -7,6 +7,34 @@ import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
 from keras.models import Sequential
 from keras.layers import Dense, LSTM
+import time  # Make sure to import time if using sleep
+
+# Streamlit UI
+st.set_page_config(layout="wide")
+st.title("Stock Price Prediction using LSTM")
+
+# Sidebar for user inputs
+st.sidebar.markdown("<div style='text-align: center;'>", unsafe_allow_html=True)
+stock = st.sidebar.text_input("Enter Stock Ticker (e.g., GOOG)", "GOOG")  # Define 'stock' here
+epochs = st.sidebar.slider("Number of Epochs", 1, 50, 2)
+batch_size = st.sidebar.slider("Batch Size", 8, 128, 32)
+st.sidebar.markdown("</div>", unsafe_allow_html=True)
+
+# Define date range for stock data
+end = dt.datetime.now()
+start = dt.datetime(end.year - 20, end.month, end.day)
+
+# Fetch stock data
+st.write("Waiting before fetching data...")
+time.sleep(2)  # Optional: Delay for rate limiting
+st.write(f"Fetching data for {stock}...")
+stock_data = yf.download(stock, start, end)
+
+# Handle empty data
+if stock_data.empty:
+    st.error("⚠️ Failed to retrieve stock data. Please check the stock ticker symbol and try again.")
+    st.stop()
+
 
 # Streamlit UI
 st.set_page_config(layout="wide")
