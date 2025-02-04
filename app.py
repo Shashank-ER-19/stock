@@ -1,3 +1,9 @@
+import time
+
+st.write("Waiting before fetching data...")
+time.sleep(2)  # Pause for 2 seconds to reduce API rate-limit issues
+
+stock_data = yf.download(stock, start, end)
 import streamlit as st
 import yfinance as yf
 import numpy as np
