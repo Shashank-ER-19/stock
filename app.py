@@ -1,9 +1,3 @@
-import time
-
-st.write("Waiting before fetching data...")
-time.sleep(2)  # Pause for 2 seconds to reduce API rate-limit issues
-
-stock_data = yf.download(stock, start, end)
 import streamlit as st
 import yfinance as yf
 import numpy as np
@@ -13,6 +7,12 @@ import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
 from keras.models import Sequential
 from keras.layers import Dense, LSTM
+import time
+
+st.write("Waiting before fetching data...")
+time.sleep(2)  # Pause for 2 seconds to reduce API rate-limit issues
+
+stock_data = yf.download(stock, start, end)
 
 # Streamlit UI
 st.set_page_config(layout="wide")
