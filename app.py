@@ -7,34 +7,6 @@ import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
 from keras.models import Sequential
 from keras.layers import Dense, LSTM
-import time  # Make sure to import time if using sleep
-
-# Streamlit UI
-st.set_page_config(layout="wide")
-st.title("Stock Price Prediction using LSTM")
-
-# Sidebar for user inputs
-st.sidebar.markdown("<div style='text-align: center;'>", unsafe_allow_html=True)
-stock = st.sidebar.text_input("Enter Stock Ticker (e.g., GOOG)", "GOOG")  # Define 'stock' here
-epochs = st.sidebar.slider("Number of Epochs", 1, 50, 2)
-batch_size = st.sidebar.slider("Batch Size", 8, 128, 32)
-st.sidebar.markdown("</div>", unsafe_allow_html=True)
-
-# Define date range for stock data
-end = dt.datetime.now()
-start = dt.datetime(end.year - 20, end.month, end.day)
-
-# Fetch stock data
-st.write("Waiting before fetching data...")
-time.sleep(2)  # Optional: Delay for rate limiting
-st.write(f"Fetching data for {stock}...")
-stock_data = yf.download(stock, start, end)
-
-# Handle empty data
-if stock_data.empty:
-    st.error("⚠️ Failed to retrieve stock data. Please check the stock ticker symbol and try again.")
-    st.stop()
-
 
 # Streamlit UI
 st.set_page_config(layout="wide")
@@ -129,7 +101,7 @@ if st.sidebar.button("Train Model"):
     predictions = model.predict(X_test)
     inv_preds = scaler.inverse_transform(predictions)
     inv_y_test = scaler.inverse_transform(y_test)
-    
+
     # Plot Test Data Predictions
     st.subheader("Test Data Predictions vs Actual Data")
     fig, ax = plt.subplots(figsize=(18, 5))
@@ -138,12 +110,19 @@ if st.sidebar.button("Train Model"):
     ax.legend()
     st.pyplot(fig)
 
-    # Whole Data Predictions
+    # Whole Data Predictions (EXACTLY LIKE YOUR .PY FILE)
     st.subheader("Whole Data Predictions")
     combined_df = pd.concat([stock_data[['Adj Close']][:split+100], pd.DataFrame(inv_preds, index=stock_data.index[split+100:], columns=['Predicted'])])
     fig, ax = plt.subplots(figsize=(18, 5))
-    ax.plot(stock_data['Adj Close'], label='Actual Data', color='blue')
-    ax.plot(combined_df, label='Predicted Data', color='green')
+
+    # Keep the same color scheme as your reference image
+    ax.plot(stock_data.index, stock_data["Adj Close"], label="(Adj Close, GOOG)", color="blue")  # Blue
+    ax.plot(stock_data.index[-len(y_test):], inv_y_test, label="original test data", color="orange")  # Orange
+    ax.plot(stock_data.index[-len(y_test):], inv_preds, label="preds", color="green")  # Green
+
+    ax.set_xlabel("Years")
+    ax.set_ylabel("Whole Data")
+    ax.set_title("Whole Data of the Stock")
     ax.legend()
     st.pyplot(fig)
 
@@ -151,18 +130,18 @@ if st.sidebar.button("Train Model"):
     future_days = 7
     last_100_days = scaled_data[-100:]
     X_future = np.array([last_100_days])
-    
+
     future_preds = []
     current_input = X_future[0].copy()
     for _ in range(future_days):
         prediction = model.predict(current_input.reshape(1, 100, 1))
         future_preds.append(prediction[0, 0])
         current_input = np.append(current_input[1:], prediction, axis=0)
-    
+
     future_preds = np.array(future_preds).reshape(-1,1)
     inv_future_preds = scaler.inverse_transform(future_preds)
     future_dates = pd.date_range(start=stock_data.index[-1] + pd.DateOffset(1), periods=future_days)
-    
+
     # Future 7 Days Predictions
     st.subheader("Future Stock Price Predictions (Next 7 Days)")
     fig, ax = plt.subplots(figsize=(18, 5))
