@@ -23,7 +23,21 @@ st.sidebar.markdown("</div>", unsafe_allow_html=True)
 end = dt.datetime.now()
 start = dt.datetime(end.year-20, end.month, end.day)
 st.write(f"Fetching data for {stock}...")
-stock_data = yf.download(stock, start=start, end=end, auto_adjust=False)
+
+try:
+    stock_data = yf.download(stock, start=start, end=end, auto_adjust=False)
+except Exception as e:
+    st.error(f"Error fetching data: {e}")
+    st.stop()
+
+if stock_data.empty:
+    st.error("No data found for the given ticker. Please check the ticker symbol and try again.")
+    st.stop()
+
+# Use 'Adj Close' if available, else fallback to 'Close'
+if 'Adj Close' not in stock_data.columns:
+    st.warning("'Adj Close' not found, using 'Close' instead.")
+    stock_data['Adj Close'] = stock_data['Close']
 
 # Moving Averages
 stock_data['MA_100'] = stock_data['Adj Close'].rolling(100).mean()
@@ -79,6 +93,9 @@ for i in range(100, len(scaled_data)):
     y_data.append(scaled_data[i])
 
 X_data, y_data = np.array(X_data), np.array(y_data)
+# Reshape for LSTM: (samples, timesteps, features)
+X_data = X_data.reshape((X_data.shape[0], X_data.shape[1], 1))
+
 split = int(len(X_data) * 0.7)
 X_train, y_train = X_data[:split], y_data[:split]
 X_test, y_test = X_data[split:], y_data[split:]
@@ -94,8 +111,12 @@ model.compile(optimizer='adam', loss='mean_squared_error')
 
 # Train model
 if st.sidebar.button("Train Model"):
-    model.fit(X_train, y_train, batch_size=batch_size, epochs=epochs, verbose=1)
-    st.success("Model Training Completed!")
+    try:
+        model.fit(X_train, y_train, batch_size=batch_size, epochs=epochs, verbose=1)
+        st.success("Model Training Completed!")
+    except Exception as e:
+        st.error(f"Error during model training: {e}")
+        st.stop()
 
     # Predictions
     predictions = model.predict(X_test)
@@ -110,16 +131,12 @@ if st.sidebar.button("Train Model"):
     ax.legend()
     st.pyplot(fig)
 
-    # Whole Data Predictions (EXACTLY LIKE YOUR .PY FILE)
+    # Whole Data Predictions
     st.subheader("Whole Data Predictions")
-    combined_df = pd.concat([stock_data[['Adj Close']][:split+100], pd.DataFrame(inv_preds, index=stock_data.index[split+100:], columns=['Predicted'])])
     fig, ax = plt.subplots(figsize=(18, 5))
-
-    # Keep the same color scheme as your reference image
-    ax.plot(stock_data.index, stock_data["Adj Close"], label="(Adj Close, GOOG)", color="blue")  # Blue
-    ax.plot(stock_data.index[-len(y_test):], inv_y_test, label="original test data", color="orange")  # Orange
-    ax.plot(stock_data.index[-len(y_test):], inv_preds, label="preds", color="green")  # Green
-
+    ax.plot(stock_data.index, stock_data["Adj Close"], label="(Adj Close, GOOG)", color="blue")
+    ax.plot(stock_data.index[-len(y_test):], inv_y_test, label="original test data", color="orange")
+    ax.plot(stock_data.index[-len(y_test):], inv_preds, label="preds", color="green")
     ax.set_xlabel("Years")
     ax.set_ylabel("Whole Data")
     ax.set_title("Whole Data of the Stock")
