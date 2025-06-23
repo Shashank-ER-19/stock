@@ -23,7 +23,7 @@ st.sidebar.markdown("</div>", unsafe_allow_html=True)
 end = dt.datetime.now()
 start = dt.datetime(end.year-20, end.month, end.day)
 st.write(f"Fetching data for {stock}...")
-stock_data = yf.download(stock, start, end)
+stock_data = yf.download(stock, start=start, end=end, auto_adjust=False)
 
 # Moving Averages
 stock_data['MA_100'] = stock_data['Adj Close'].rolling(100).mean()
